@@ -29,13 +29,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ecs.AmazonECSClient;
-import com.amazonaws.services.ecs.model.ClientException;
-import com.amazonaws.services.ecs.model.ContainerOverride;
-import com.amazonaws.services.ecs.model.Failure;
-import com.amazonaws.services.ecs.model.RunTaskRequest;
-import com.amazonaws.services.ecs.model.RunTaskResult;
-import com.amazonaws.services.ecs.model.StopTaskRequest;
-import com.amazonaws.services.ecs.model.TaskOverride;
+import com.amazonaws.services.ecs.model.*;
 import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -141,9 +135,9 @@ public class ECSCloud extends Cloud {
             return null;
         }
         return (AmazonWebServicesCredentials) CredentialsMatchers.firstOrNull(
-          CredentialsProvider.lookupCredentials(AmazonWebServicesCredentials.class, Jenkins.getInstance(),
-            ACL.SYSTEM, Collections.EMPTY_LIST),
-          CredentialsMatchers.withId(credentialsId));
+                CredentialsProvider.lookupCredentials(AmazonWebServicesCredentials.class, Jenkins.getInstance(),
+                        ACL.SYSTEM, Collections.EMPTY_LIST),
+                CredentialsMatchers.withId(credentialsId));
     }
 
     @Override
@@ -171,7 +165,7 @@ public class ECSCloud extends Cloud {
             for (int i = 1; i <= excessWorkload; i++) {
 
                 r.add(new NodeProvisioner.PlannedNode(template.getDisplayName(), Computer.threadPoolForRemoting
-                  .submit(new ProvisioningCallback(template, label)), 1));
+                        .submit(new ProvisioningCallback(template, label)), 1));
             }
             return r;
         } catch (Exception e) {
@@ -239,13 +233,22 @@ public class ECSCloud extends Cloud {
             String definitionArn = template.getTaskDefinitionArn();
             slave.setTaskDefinitonArn(definitionArn);
 
+            ContainerOverride containerOverride = new ContainerOverride()
+                    .withName("jenkins-slave");
+
+            if (template.getSupervisord()) {
+                containerOverride.withEnvironment(new KeyValuePair()
+                        .withName("JENKINS_JNLP_SLAVE_SETTINGS")
+                        .withValue(slave.getComputer().getJnlpMac() + " "
+                                + slave.getComputer().getName()));
+            } else {
+                containerOverride.withCommand(command);
+            }
+
             final RunTaskResult runTaskResult = client.runTask(new RunTaskRequest()
-              .withTaskDefinition(definitionArn)
-              .withOverrides(new TaskOverride()
-                .withContainerOverrides(new ContainerOverride()
-                  .withName("jenkins-slave")
-                  .withCommand(command)))
-              .withCluster(cluster)
+                            .withTaskDefinition(definitionArn)
+                            .withOverrides(new TaskOverride().withContainerOverrides(containerOverride))
+                            .withCluster(cluster)
             );
 
             if (!runTaskResult.getFailures().isEmpty()) {
@@ -307,13 +310,13 @@ public class ECSCloud extends Cloud {
 
         public ListBoxModel doFillCredentialsIdItems() {
             return new StandardListBoxModel()
-              .withEmptySelection()
-              .withMatching(
-                CredentialsMatchers.always(),
-                CredentialsProvider.lookupCredentials(AmazonWebServicesCredentials.class,
-                  Jenkins.getInstance(),
-                  ACL.SYSTEM,
-                  Collections.EMPTY_LIST));
+                    .withEmptySelection()
+                    .withMatching(
+                            CredentialsMatchers.always(),
+                            CredentialsProvider.lookupCredentials(AmazonWebServicesCredentials.class,
+                                    Jenkins.getInstance(),
+                                    ACL.SYSTEM,
+                                    Collections.EMPTY_LIST));
         }
 
         public ListBoxModel doFillRegionNameItems() {

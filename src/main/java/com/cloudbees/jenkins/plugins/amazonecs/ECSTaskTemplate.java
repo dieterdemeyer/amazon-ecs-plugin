@@ -118,6 +118,12 @@ public class ECSTaskTemplate extends AbstractDescribableImpl<ECSTaskTemplate> {
      */
     private final boolean privileged;
 
+    /**
+     * This option indicates that the docker image is using supervisord for managing its processes.
+     * Because of this, no Container command should/can be given when starting the container.
+     */
+    private final boolean supervisord;
+
     private List<EnvironmentEntry> environments;
     private List<ExtraHostEntry> extraHosts;
 
@@ -130,6 +136,7 @@ public class ECSTaskTemplate extends AbstractDescribableImpl<ECSTaskTemplate> {
                            int memory,
                            int cpu,
                            boolean privileged,
+                           boolean supervisord,
                            @Nullable List<EnvironmentEntry> environments,
                            @Nullable List<ExtraHostEntry> extraHosts,
                            @Nullable List<MountPointEntry> mountPoints) {
@@ -139,6 +146,7 @@ public class ECSTaskTemplate extends AbstractDescribableImpl<ECSTaskTemplate> {
         this.memory = memory;
         this.cpu = cpu;
         this.privileged = privileged;
+        this.supervisord = supervisord;
         this.environments = environments;
         this.extraHosts = extraHosts;
         this.mountPoints = mountPoints;
@@ -184,6 +192,10 @@ public class ECSTaskTemplate extends AbstractDescribableImpl<ECSTaskTemplate> {
 
     public boolean getPrivileged() {
         return privileged;
+    }
+
+    public boolean getSupervisord() {
+        return supervisord;
     }
 
     public String getTaskDefinitionArn() {
